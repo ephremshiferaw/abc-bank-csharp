@@ -1,21 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace abc_bank
 {
     public class Transaction
     {
-        public readonly double amount;
-
-        private DateTime transactionDate;
-
-        public Transaction(double amount) 
+        public enum TransactionTypes
         {
-            this.amount = amount;
-            this.transactionDate = DateProvider.getInstance().Now();
+            Deposit,
+            Withdraw
+        }
+
+        public TransactionTypes TransactionType { get; private set; }
+        public double Amount { get; private set; }
+
+        public DateTime TransactionDate{ get; private set; }
+
+        public Transaction(double amount, TransactionTypes transactionType)
+            : this(amount, DateProvider.Instance.Now, transactionType)
+        {
+        }
+
+        public Transaction(double amount, DateTime transactionDate, TransactionTypes transactionType)
+        {
+            Amount = amount;
+            TransactionDate = transactionDate;
+            TransactionType = transactionType;
         }
     }
 }
