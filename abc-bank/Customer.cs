@@ -2,89 +2,129 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace abc_bank
 {
     public class Customer
     {
-        private String name;
-        private List<Account> accounts;
+        public string Name { get; private set; }
+        private readonly List<Account> _accounts;
 
         public Customer(String name)
         {
-            this.name = name;
-            this.accounts = new List<Account>();
+            Name = name;
+            _accounts = new List<Account>();
         }
 
         public String GetName()
         {
-            return name;
+            return Name;
         }
 
         public Customer OpenAccount(Account account)
         {
-            accounts.Add(account);
+            if (account == null)
+                throw new ArgumentNullException("account", "account was not provided");
+
+            if (_accounts.Contains(account))
+                throw new ArgumentException("account already opened");
+            _accounts.Add(account);
             return this;
+        }
+
+
+        public bool Transfer(Account accountFrom, Account accountTo, double transferAmount, DateTime? transactionDate = null)
+        {
+            if (accountFrom == null)
+                throw new ArgumentNullException("accountFrom", "account was not provided");
+
+            if (accountTo == null)
+                throw new ArgumentNullException("accountTo", "account was not provided");
+
+            if (accountFrom == accountTo)
+                throw new ArgumentException("transfer to the same account is not allowed");
+
+
+            if (_accounts.Contains(accountFrom)==false)
+                throw new ArgumentException("transfer from an external account is not allowed");
+
+
+            if (_accounts.Contains(accountTo) == false)
+                throw new ArgumentException("transfer to an external account is not allowed");
+
+
+            if (transferAmount <= 0)
+            {
+                throw new ArgumentException("transfer amount must be greater than zero");
+            }
+
+            var fromBalance = accountFrom.Balance();
+
+            if (fromBalance <= transferAmount)
+            {
+                throw new ArgumentException("transfer amount must be less than account balance");
+            }
+
+            accountFrom.Withdraw(transferAmount, transactionDate);
+            accountTo.Deposit(transferAmount, transactionDate);
+
+            return true;
         }
 
         public int GetNumberOfAccounts()
         {
-            return accounts.Count;
+            return _accounts.Count;
         }
 
-        public double TotalInterestEarned() 
+        public double TotalInterestEarned()
         {
-            double total = 0;
-            foreach (Account a in accounts)
-                total += a.InterestEarned();
-            return total;
+            return _accounts.Sum(a => a.InterestEarned());
         }
 
-        public String GetStatement() 
+        public double TotalBalance()
         {
-            String statement = null;
-            statement = "Statement for " + name + "\n";
-            double total = 0.0;
-            foreach (Account a in accounts) 
+            return _accounts.Sum(a => a.Balance());
+        }
+
+        public String GetStatement()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Statement for " + Name);
+            var total = 0.0;
+            foreach (var a in _accounts)
             {
-                statement += "\n" + statementForAccount(a) + "\n";
-                total += a.sumTransactions();
+                sb.AppendLine("");
+                sb.AppendLine(StatementForAccount(a));
+                total += a.SumTransactions();
             }
-            statement += "\nTotal In All Accounts " + ToDollars(total);
-            return statement;
+            sb.AppendLine("");
+            sb.AppendLine("Total In All Accounts " + ToDollars(total));
+            return sb.ToString();
         }
 
-        private String statementForAccount(Account a) 
+        private static String StatementForAccount(Account a) 
         {
-            String s = "";
-
-           //Translate to pretty account type
-            switch(a.GetAccountType()){
-                case Account.CHECKING:
-                    s += "Checking Account\n";
-                    break;
-                case Account.SAVINGS:
-                    s += "Savings Account\n";
-                    break;
-                case Account.MAXI_SAVINGS:
-                    s += "Maxi Savings Account\n";
-                    break;
-            }
+            var sb = new StringBuilder();
+            sb.AppendLine(a.ToString());
 
             //Now total up all the transactions
-            double total = 0.0;
-            foreach (Transaction t in a.transactions) {
-                s += "  " + (t.amount < 0 ? "withdrawal" : "deposit") + " " + ToDollars(t.amount) + "\n";
-                total += t.amount;
+            var total = 0.0;
+            foreach (var t in a.Transactions)
+            {
+                sb.AppendLine("  " + (t.Amount < 0 ? "withdrawal" : "deposit") + " " + ToDollars(t.Amount));               
+                total += t.Amount;
             }
-            s += "Total " + ToDollars(total);
-            return s;
+            sb.AppendLine("Total " + ToDollars(total));
+
+            return sb.ToString();
         }
 
-        private String ToDollars(double d)
+        private static String ToDollars(double d)
         {
-            return String.Format("$%,.2f", Math.Abs(d));
+
+            return Math.Abs(d).ToString("C2");
+            //d.ToString()
+            return d.ToString("$%,.2f");
         }
     }
 }
